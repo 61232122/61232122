@@ -13,6 +13,9 @@ public class PlayerMovement : MonoBehaviour
     private int currentTileIndex = 0; // 紀錄目前在哪一格
     private bool isMoving = false;
 
+    public PlayerMovement player;
+
+
     // --- 給骰子腳本呼叫的入口 ---
     public void StartMove(int steps)
     {
