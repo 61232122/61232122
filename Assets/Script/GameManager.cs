@@ -1,0 +1,54 @@
+/*
+using UnityEngine;
+using System.Collections.Generic;
+
+public class GameManager : MonoBehaviour
+{
+    [Header("不同造型的棋子設定")]
+    // 將原本的單個 Prefab 改成陣列，依序放入 1~4 號的造型
+    public GameObject[] playerPrefabs;
+
+    [Header("生成位置設定")]
+    public Transform[] startPositions;
+
+    [Header("遊戲狀態")]
+    public List<GameObject> activePlayers = new List<GameObject>();
+
+    public void StartGame(int totalCount)
+    {
+        // 1. 清除舊棋子
+        foreach (GameObject p in activePlayers) { Destroy(p); }
+        activePlayers.Clear();
+
+        // 定義四個角落的偏移數值 (假設格子大小是 1x1)
+        Vector3[] offsets = new Vector3[]
+        {
+        new Vector3(-0.25f, 0, 0.25f),  // 左上
+        new Vector3(0.25f, 0, 0.25f),   // 右上
+        new Vector3(-0.25f, 0, -0.25f), // 左下
+        new Vector3(0.25f, 0, -0.25f)   // 右下
+        };
+
+        for (int i = 0; i < totalCount; i++)
+        {
+            // 取得初始位置
+            Vector3 spawnPos = startPositions[0].position + offsets[i]; // 一開始也排好隊
+
+            GameObject newPlayer = Instantiate(playerPrefabs[i], spawnPos, Quaternion.identity);
+            PlayerMovement moveScript = newPlayer.GetComponent<PlayerMovement>();
+
+            if (moveScript != null)
+            {
+                moveScript.isAI = (i != 0);
+                moveScript.playerName = (i == 0) ? "玩家" : "電腦 " + i;
+
+                // --- 將對應的偏移量存入棋子腳本 ---
+                moveScript.myOffset = offsets[i];
+            }
+            activePlayers.Add(newPlayer);
+        }
+
+        Debug.Log($"已生成 {totalCount} 名玩家，各有不同造型！");
+    }
+}
+*/

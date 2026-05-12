@@ -3,17 +3,23 @@ using System.Collections;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("角色狀態")]
+    public string playerName;
+    public bool isAI; // 由 GameManager 生成時自動設定
+    private bool isMoving = false;
+    private int currentTileIndex = 0; // 紀錄目前在哪一格
+
     [Header("地圖資料")]
-    public MapData mapData; // 連結先前做好的 MapData
+    public MapData mapData; // 連結地圖資料
 
     [Header("移動設定")]
     public float moveSpeed = 5f;    // 移動速度
     public float pauseTime = 0.2f; // 每到一格停頓的時間
 
-    private int currentTileIndex = 0; // 紀錄目前在哪一格
-    private bool isMoving = false;
+    [Header("排隊設定")]
+    public Vector3 myOffset; // 這隻棋子專屬的偏移位置
 
-    // --- 給骰子腳本呼叫的入口 ---
+    // --- 給骰子腳本或 GameManager 呼叫的入口 ---
     public void StartMove(int steps)
     {
         if (isMoving) return;
@@ -26,16 +32,18 @@ public class PlayerMovement : MonoBehaviour
 
         for (int i = 0; i < steps; i++)
         {
-            // 1. 計算下一格的索引（使用 % 確保超過最後一格會回到 0）
+            // 1. 計算下一格索引
             currentTileIndex = (currentTileIndex + 1) % mapData.tileList.Count;
 
-            // 2. 取得目標格子的座標
+            // 2. 取得目標格座標並維持高度
             Vector3 targetPos = mapData.tileList[currentTileIndex].position;
-
-            // 為了不讓棋子陷進地板，我們微調 Y 軸（高度）
             targetPos.y = transform.position.y;
 
-            // 3. 平滑移動到該格子
+            // --- 核心修改：加上這隻棋子的專屬偏移量 ---
+            targetPos += myOffset;
+
+            targetPos.y = transform.position.y;
+
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(
@@ -43,35 +51,38 @@ public class PlayerMovement : MonoBehaviour
                     targetPos,
                     moveSpeed * Time.deltaTime
                 );
-                yield return null; // 等待下一幀
+                yield return null;
             }
-
-            // 4. 到達該格，稍微停頓一下增加節奏感
             yield return new WaitForSeconds(pauseTime);
         }
 
         isMoving = false;
-        Debug.Log($"玩家抵達第 {currentTileIndex} 格");
+        Debug.Log($"{playerName} 抵達第 {currentTileIndex} 格");
 
+        // 5. 檢查格子效果
+        CheckTileEffect();
+    }
 
+    private void CheckTileEffect()
+    {
         TileProperty currentTile = mapData.tileList[currentTileIndex].GetComponent<TileProperty>();
 
         if (currentTile != null && currentTile.data != null)
         {
-            TileData data = currentTile.data; // 取得 ScriptableObject 資料
+            TileData data = currentTile.data;
 
             switch (data.effectType)
             {
                 case TileEffectType.MoveSteps:
                     int stepsToMove = data.isRandomSteps ? UnityEngine.Random.Range(1, 4) : data.steps;
-                    Debug.Log($"觸發移動效果：{stepsToMove} 步");
-                    StartCoroutine(MoveRoutine(stepsToMove)); // 再次執行移動
+                    Debug.Log($"{playerName} 觸發移動效果：{stepsToMove} 步");
+                    StartCoroutine(MoveRoutine(stepsToMove));
                     break;
 
                 case TileEffectType.Teleport:
                     int targetIndex = data.isRandomTeleport ? UnityEngine.Random.Range(0, mapData.tileList.Count) : data.targetTileIndex;
-                    Debug.Log($"觸發傳送效果，目標索引：{targetIndex}");
-                    TeleportTo(targetIndex); // 執行傳送方法
+                    Debug.Log($"{playerName} 觸發傳送，目標索引：{targetIndex}");
+                    TeleportTo(targetIndex);
                     break;
             }
         }
@@ -79,21 +90,17 @@ public class PlayerMovement : MonoBehaviour
 
     public void TeleportTo(int targetIndex)
     {
-        // 1. 安全檢查：確保索引在地圖範圍內
         if (targetIndex < 0 || targetIndex >= mapData.tileList.Count)
         {
             Debug.LogError("傳送目標超出地圖範圍！");
             return;
         }
 
-        // 2. 更新當前的格子索引
         currentTileIndex = targetIndex;
-
-        // 3. 取得目標格子的座標並直接「瞬移」過去
-        Vector3 targetPos = mapData.tileList[currentTileIndex].position;
-        targetPos.y = transform.position.y; // 保持原本的高度
+        Vector3 targetPos = mapData.tileList[currentTileIndex].position + myOffset;
+        targetPos.y = transform.position.y;
         transform.position = targetPos;
 
-        Debug.Log($"玩家已傳送至第 {currentTileIndex} 格");
+        Debug.Log($"{playerName} 已傳送至第 {currentTileIndex} 格");
     }
 }

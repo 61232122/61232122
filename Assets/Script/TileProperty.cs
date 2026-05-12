@@ -6,7 +6,7 @@ public class TileProperty : MonoBehaviour
     public TileData data;
 
     // 用來儲存格子原始的材質，以便清空時恢復
-    [SerializeField] private Material defaultMaterial;
+    private Material defaultMaterial;
 
     // 當腳本第一次掛載或點擊 Reset 時執行
     private void Reset()

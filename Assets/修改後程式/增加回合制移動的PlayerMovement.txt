@@ -1,0 +1,123 @@
+using UnityEngine;
+using System.Collections;
+
+public class PlayerMovement : MonoBehaviour
+{
+    [Header("角色狀態")]
+    public string playerName;
+    public bool isAI; // 由 GameManager 生成時自動設定
+    private bool isMoving = false;
+    private int currentTileIndex = 0; // 紀錄目前在哪一格
+
+    [Header("地圖資料")]
+    public MapData mapData; // 現在會由 Awake 自動抓取
+
+    [Header("移動設定")]
+    public float moveSpeed = 5f;    // 移動速度
+    public float pauseTime = 0.2f; // 每到一格停頓的時間
+
+    [Header("排隊設定")]
+    public Vector3 myOffset; // 這隻棋子專屬的偏移位置
+
+    void Awake()
+    {
+        // --- 自動抓取 MapData 邏輯 ---
+        // 尋找場景中的 GameManager，並取得其身上引用的 MapData
+        if (mapData == null)
+        {
+            GameManager gm = Object.FindObjectOfType<GameManager>();
+            if (gm != null)
+            {
+                // 注意：GameManager 必須先將 MapData 變數設為 public
+                mapData = gm.mapData; 
+            }
+        }
+    }
+
+    public void StartMove(int steps)
+    {
+        if (isMoving) return;
+        if (mapData == null)
+        {
+            Debug.LogError($"{playerName} 找不到 MapData！請確認 GameManager 物件上有拖入 MapData。");
+            return;
+        }
+        StartCoroutine(MoveRoutine(steps));
+    }
+
+    IEnumerator MoveRoutine(int steps)
+    {
+        isMoving = true;
+
+        for (int i = 0; i < steps; i++)
+        {
+            // 1. 計算下一格索引
+            currentTileIndex = (currentTileIndex + 1) % mapData.tileList.Count;
+
+            // 2. 取得目標格座標並加上偏移量
+            Vector3 targetPos = mapData.tileList[currentTileIndex].position + myOffset;
+            targetPos.y = transform.position.y;
+
+            // 3. 平滑移動
+            while (Vector3.Distance(transform.position, targetPos) > 0.01f)
+            {
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    targetPos,
+                    moveSpeed * Time.deltaTime
+                );
+                yield return null;
+            }
+            yield return new WaitForSeconds(pauseTime);
+        }
+
+        isMoving = false;
+        Debug.Log($"{playerName} 抵達第 {currentTileIndex} 格");
+
+        // 4. 檢查格子效果
+        CheckTileEffect();
+
+        // --- 核心修改：移動結束後，通知 GameManager 換下一個人 ---
+        yield return new WaitForSeconds(1.0f);
+        GameManager gm = Object.FindObjectOfType<GameManager>();
+        if (gm != null)
+        {
+            gm.NextTurn(); // 呼叫切換回合
+        }
+    }
+
+    private void CheckTileEffect()
+    {
+        TileProperty currentTile = mapData.tileList[currentTileIndex].GetComponent<TileProperty>();
+
+        if (currentTile != null && currentTile.data != null)
+        {
+            TileData data = currentTile.data;
+
+            switch (data.effectType)
+            {
+                case TileEffectType.MoveSteps:
+                    int stepsToMove = data.isRandomSteps ? UnityEngine.Random.Range(1, 4) : data.steps;
+                    Debug.Log($"{playerName} 觸發移動效果：{stepsToMove} 步");
+                    StartCoroutine(MoveRoutine(stepsToMove));
+                    break;
+
+                case TileEffectType.Teleport:
+                    int targetIndex = data.isRandomTeleport ? UnityEngine.Random.Range(0, mapData.tileList.Count) : data.targetTileIndex;
+                    Debug.Log($"{playerName} 觸發傳送，目標索引：{targetIndex}");
+                    TeleportTo(targetIndex);
+                    break;
+            }
+        }
+    }
+
+    public void TeleportTo(int targetIndex)
+    {
+        if (targetIndex < 0 || targetIndex >= mapData.tileList.Count) return;
+
+        currentTileIndex = targetIndex;
+        Vector3 targetPos = mapData.tileList[currentTileIndex].position + myOffset;
+        targetPos.y = transform.position.y;
+        transform.position = targetPos;
+    }
+}

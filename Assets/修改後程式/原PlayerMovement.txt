@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-
 public class PlayerMovement : MonoBehaviour
 {
     [Header("地圖資料")]
@@ -9,7 +8,6 @@ public class PlayerMovement : MonoBehaviour
     [Header("移動設定")]
     public float moveSpeed = 5f;    // 移動速度
     public float pauseTime = 0.2f; // 每到一格停頓的時間
-
     private int currentTileIndex = 0; // 紀錄目前在哪一格
     private bool isMoving = false;
 
@@ -19,11 +17,9 @@ public class PlayerMovement : MonoBehaviour
         if (isMoving) return;
         StartCoroutine(MoveRoutine(steps));
     }
-
     IEnumerator MoveRoutine(int steps)
     {
         isMoving = true;
-
         for (int i = 0; i < steps; i++)
         {
             // 1. 計算下一格的索引（使用 % 確保超過最後一格會回到 0）
@@ -31,7 +27,6 @@ public class PlayerMovement : MonoBehaviour
 
             // 2. 取得目標格子的座標
             Vector3 targetPos = mapData.tileList[currentTileIndex].position;
-
             // 為了不讓棋子陷進地板，我們微調 Y 軸（高度）
             targetPos.y = transform.position.y;
 
@@ -49,17 +44,12 @@ public class PlayerMovement : MonoBehaviour
             // 4. 到達該格，稍微停頓一下增加節奏感
             yield return new WaitForSeconds(pauseTime);
         }
-
         isMoving = false;
         Debug.Log($"玩家抵達第 {currentTileIndex} 格");
-
-
         TileProperty currentTile = mapData.tileList[currentTileIndex].GetComponent<TileProperty>();
-
         if (currentTile != null && currentTile.data != null)
         {
             TileData data = currentTile.data; // 取得 ScriptableObject 資料
-
             switch (data.effectType)
             {
                 case TileEffectType.MoveSteps:
@@ -67,7 +57,6 @@ public class PlayerMovement : MonoBehaviour
                     Debug.Log($"觸發移動效果：{stepsToMove} 步");
                     StartCoroutine(MoveRoutine(stepsToMove)); // 再次執行移動
                     break;
-
                 case TileEffectType.Teleport:
                     int targetIndex = data.isRandomTeleport ? UnityEngine.Random.Range(0, mapData.tileList.Count) : data.targetTileIndex;
                     Debug.Log($"觸發傳送效果，目標索引：{targetIndex}");
@@ -86,6 +75,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
+
         // 2. 更新當前的格子索引
         currentTileIndex = targetIndex;
 
@@ -93,7 +83,7 @@ public class PlayerMovement : MonoBehaviour
         Vector3 targetPos = mapData.tileList[currentTileIndex].position;
         targetPos.y = transform.position.y; // 保持原本的高度
         transform.position = targetPos;
-
         Debug.Log($"玩家已傳送至第 {currentTileIndex} 格");
     }
+
 }
