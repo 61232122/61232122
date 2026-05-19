@@ -1,4 +1,4 @@
-/*
+
 using UnityEngine;
 using UnityEngine.UI; // 使用傳統 Text 必須引用此項
 
@@ -36,4 +36,3 @@ public class LobbyManager : MonoBehaviour
         }
     }
 }
-*/

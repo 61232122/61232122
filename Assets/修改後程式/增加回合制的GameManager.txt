@@ -1,0 +1,66 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public class GameManager : MonoBehaviour
+{
+    [Header("不同造型的棋子設定")]
+    // 將原本的單個 Prefab 改成陣列，依序放入 1~4 號的造型
+    public GameObject[] playerPrefabs;
+
+    [Header("生成位置設定")]
+    public Transform[] startPositions;
+
+    [Header("遊戲狀態")]
+    public List<GameObject> activePlayers = new List<GameObject>();
+
+    [Header("UI 引用")]
+    public GameObject playerItemPrefab;   // 剛才做好的圖文 Prefab
+    public Transform playerListContainer; // 左側面板的 Container
+    public Sprite[] playerSprites;        // 放入與 Prefab 造型對應的 2D 圖片
+
+    [Header("資料儲存")]
+    private List<PlayerUIItem> uiItems = new List<PlayerUIItem>();
+
+    public void StartGame(int totalCount)
+    {
+        // 1. 清除舊 UI
+        foreach (Transform child in playerListContainer) { Destroy(child.gameObject); }
+        uiItems.Clear();
+
+        // 2. 根據人數生成 UI 項目
+        for (int i = 0; i < totalCount; i++)
+        {
+            GameObject itemGo = Instantiate(playerItemPrefab, playerListContainer);
+            PlayerUIItem uiScript = itemGo.GetComponent<PlayerUIItem>();
+
+            // 設定名稱
+            uiScript.nameText.text = (i == 0) ? "玩家 1" : "電腦 " + i;
+
+            // 設定圖片 (對應你放入 playerSprites 的圖片)
+            if (i < playerSprites.Length)
+            {
+                uiScript.playerIcon.sprite = playerSprites[i];
+            }
+
+            // 預設關閉箭頭
+            uiScript.arrow.SetActive(false);
+
+            uiItems.Add(uiScript);
+        }
+
+        // 3. 設定第一回合
+        SetTurn(0);
+    }
+
+    public void SetTurn(int index)
+    {
+        // 遍歷所有 UI 項目，只有目前索引的箭頭會顯示
+        for (int i = 0; i < uiItems.Count; i++)
+        {
+            uiItems[i].arrow.SetActive(i == index);
+
+            // 可選：沒輪到的人圖片變暗
+            uiItems[i].playerIcon.color = (i == index) ? Color.white : Color.gray;
+        }
+    }
+}

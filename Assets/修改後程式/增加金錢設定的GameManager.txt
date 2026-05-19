@@ -54,6 +54,7 @@ public class GameManager : MonoBehaviour
                 moveScript.isAI = (i != 0);
                 moveScript.playerName = (i == 0) ? "玩家 1" : "電腦 " + i;
                 moveScript.myOffset = offsets[i];
+                moveScript.playerIndex = i; // <-- 讓棋子記住自己的編號是 i
             }
             activePlayers.Add(newPlayer);
 
@@ -63,6 +64,8 @@ public class GameManager : MonoBehaviour
 
             if (uiScript != null)
             {
+                // <-- 剛開始遊戲時，顯示初始金額
+                if (moveScript != null) uiScript.moneyText.text = "$" + moveScript.startingMoney;
                 uiScript.nameText.text = (i == 0) ? "玩家 1" : "電腦 " + i;
                 // 分配頭像圖片
                 if (i < playerSprites.Length) uiScript.playerIcon.sprite = playerSprites[i];
@@ -120,5 +123,14 @@ public class GameManager : MonoBehaviour
 
         // 電腦自動執行擲骰
         diceScript.RollDice();
+    }
+
+    public void UpdateMoneyUI(int index, int currentMoney)
+    {
+        // 防呆檢查，確保 index 沒有超出 UI 陣列範圍
+        if (index >= 0 && index < uiItems.Count)
+        {
+            uiItems[index].moneyText.text = "$" + currentMoney;
+        }
     }
 }

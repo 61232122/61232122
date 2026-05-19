@@ -29,7 +29,7 @@ public class PlayerMovement : MonoBehaviour
             if (gm != null)
             {
                 // 注意：GameManager 必須先將 MapData 變數設為 public
-                mapData = gm.mapData; 
+                mapData = gm.mapData;
             }
         }
     }
@@ -49,16 +49,28 @@ public class PlayerMovement : MonoBehaviour
     {
         isMoving = true;
 
-        for (int i = 0; i < steps; i++)
-        {
-            // 1. 計算下一格索引
-            currentTileIndex = (currentTileIndex + 1) % mapData.tileList.Count;
+        // --- 核心修正 1：處理方向與絕對步數 ---
+        int direction = (steps >= 0) ? 1 : -1;
+        int absSteps = Mathf.Abs(steps);
 
-            // 2. 取得目標格座標並加上偏移量
+        for (int i = 0; i < absSteps; i++)
+        {
+            // --- 核心修正 2：安全的陣列輪迴計算 ---
+            if (direction == 1)
+            {
+                currentTileIndex = (currentTileIndex + 1) % mapData.tileList.Count;
+            }
+            else
+            {
+                // 加上 mapData.tileList.Count 避免產生負數索引報錯
+                currentTileIndex = (currentTileIndex - 1 + mapData.tileList.Count) % mapData.tileList.Count;
+            }
+
+            // 取得目標格座標並加上偏移量
             Vector3 targetPos = mapData.tileList[currentTileIndex].position + myOffset;
             targetPos.y = transform.position.y;
 
-            // 3. 平滑移動
+            // 平滑移動
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(
@@ -74,19 +86,23 @@ public class PlayerMovement : MonoBehaviour
         isMoving = false;
         Debug.Log($"{playerName} 抵達第 {currentTileIndex} 格");
 
-        // 4. 檢查格子效果
-        CheckTileEffect();
+        // --- 核心修正 3：檢查格子效果並分流協程 ---
+        bool triggeredNewMove = CheckTileEffect();
 
-        // --- 核心修改：移動結束後，通知 GameManager 換下一個人 ---
-        yield return new WaitForSeconds(1.0f);
-        GameManager gm = Object.FindObjectOfType<GameManager>();
-        if (gm != null)
+        // 只有在「沒有觸發連續移動」時，才呼叫 GameManager 換下一個人
+        if (!triggeredNewMove)
         {
-            gm.NextTurn(); // 呼叫切換回合
+            yield return new WaitForSeconds(1.0f); // 加一點小延遲讓玩家看清楚
+            GameManager gm = Object.FindObjectOfType<GameManager>();
+            if (gm != null)
+            {
+                gm.NextTurn(); // 呼叫切換回合
+            }
         }
     }
 
-    private void CheckTileEffect()
+    // 將回傳值改為 bool，讓 MoveRoutine 知道是否開啟了新的移動
+    private bool CheckTileEffect()
     {
         TileProperty currentTile = mapData.tileList[currentTileIndex].GetComponent<TileProperty>();
 
@@ -98,17 +114,22 @@ public class PlayerMovement : MonoBehaviour
             {
                 case TileEffectType.MoveSteps:
                     int stepsToMove = data.isRandomSteps ? UnityEngine.Random.Range(1, 4) : data.steps;
-                    Debug.Log($"{playerName} 觸發移動效果：{stepsToMove} 步");
-                    StartCoroutine(MoveRoutine(stepsToMove));
+                    if (stepsToMove != 0) // 防呆機制
+                    {
+                        Debug.Log($"{playerName} 觸發移動效果：{stepsToMove} 步");
+                        StartCoroutine(MoveRoutine(stepsToMove));
+                        return true; // 回傳 true：代表正在執行新的移動協程，請先不要換玩家
+                    }
                     break;
 
                 case TileEffectType.Teleport:
                     int targetIndex = data.isRandomTeleport ? UnityEngine.Random.Range(0, mapData.tileList.Count) : data.targetTileIndex;
                     Debug.Log($"{playerName} 觸發傳送，目標索引：{targetIndex}");
                     TeleportTo(targetIndex);
-                    break;
+                    return false; // 傳送是瞬間完成的，可以直接回傳 false 讓原本的程式繼續換人
             }
         }
+        return false;
     }
 
     public void TeleportTo(int targetIndex)

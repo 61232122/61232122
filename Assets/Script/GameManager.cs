@@ -1,4 +1,4 @@
-/*
+
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -51,4 +51,3 @@ public class GameManager : MonoBehaviour
         Debug.Log($"已生成 {totalCount} 名玩家，各有不同造型！");
     }
 }
-*/
