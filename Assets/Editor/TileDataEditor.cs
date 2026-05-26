@@ -35,6 +35,11 @@ public class TileDataEditor : Editor
                 else
                     EditorGUILayout.HelpBox("將隨機傳送至地圖任一處", MessageType.Info);
                 break;
+
+            // --- 新增：當選擇 ChangeMoney 時，顯示金錢輸入欄位 ---
+            case TileEffectType.ChangeMoney:
+                data.moneyAmount = EditorGUILayout.IntField("金額變動 (正加負減)", data.moneyAmount);
+                break;
         }
 
         // 儲存修改 (這行很重要，否則重開專案資料會消失)

@@ -67,16 +67,18 @@ public class RealPhysicsDice : MonoBehaviour
             yield return new WaitForSeconds(0.2f);
         }
 
-        // 4. 偵測點數 (判定哪一面朝上)
+        // 4. 偵測點數並移動
         int result = DetectSide();
-
-        // 5. 自動吸附 (防止骰子斜停)
         yield return StartCoroutine(SnapRotation());
 
         isRolling = false;
-        Debug.Log($"骰子落定！物理偵測結果：{result}");
 
-        if (player != null) player.StartMove(result);
+        if (player != null)
+        {
+            // 執行移動，並等待移動完成
+            // 我們修改 StartMove 讓它變成可以等待的協程，或者在 GameManager 處理切換
+            player.StartMove(result);
+        }
     }
 
     int DetectSide()
